@@ -561,7 +561,9 @@ export function PitchDeckGame({ cardsData }: { cardsData: CardsData }) {
     setG((prev) => {
       const n = prev.currentRound + 1;
       if (n > prev.totalRounds) return { ...prev, screen: "gameover" as Screen };
-      const ji = (n - 1) % prev.players.length;
+      const winner = prev.revealPitch?.player;
+      const wi = winner ? prev.players.indexOf(winner) : -1;
+      const ji = wi >= 0 ? wi : (n - 1) % prev.players.length;
       return {
         ...prev,
         screen: "round" as Screen,
@@ -673,21 +675,26 @@ export function PitchDeckGame({ cardsData }: { cardsData: CardsData }) {
               <label className="text-[11px] font-mono uppercase tracking-widest text-sage/70 block">
                 Rounds
               </label>
-              <div className="flex gap-2">
-                {[3, 5, 7].map((r) => (
-                  <button
-                    key={r}
-                    className={`flex-1 py-3 rounded-lg text-base font-bold transition-all border-2
-                      ${
-                        roundsChoice === r
-                          ? "bg-cream-dark/20 border-cream-dark text-cream"
-                          : "bg-felt-dark border-panel-border text-sage/60 hover:border-sage/40"
-                      }`}
-                    onClick={() => setRoundsChoice(r)}
-                  >
-                    {r}
-                  </button>
-                ))}
+              <div className="flex items-center justify-center gap-4">
+                <button
+                  className="w-12 h-12 rounded-lg border-2 border-panel-border bg-felt-dark text-sage text-xl font-bold
+                    hover:border-sage/40 hover:text-cream transition-all disabled:opacity-20 disabled:pointer-events-none"
+                  disabled={roundsChoice <= 1}
+                  onClick={() => setRoundsChoice((r) => Math.max(1, r - 1))}
+                >
+                  −
+                </button>
+                <span className="text-3xl font-bold text-cream w-12 text-center tabular-nums">
+                  {roundsChoice}
+                </span>
+                <button
+                  className="w-12 h-12 rounded-lg border-2 border-panel-border bg-felt-dark text-sage text-xl font-bold
+                    hover:border-sage/40 hover:text-cream transition-all disabled:opacity-20 disabled:pointer-events-none"
+                  disabled={roundsChoice >= 15}
+                  onClick={() => setRoundsChoice((r) => Math.min(15, r + 1))}
+                >
+                  +
+                </button>
               </div>
             </div>
 
