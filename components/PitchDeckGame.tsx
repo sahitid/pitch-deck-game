@@ -246,16 +246,16 @@ export function PitchDeckGame({ cardsData }: { cardsData: CardsData }) {
   const pitchValid = isPitchValid(slots);
   const pitchPoints = pointsForSlots(slotCount);
 
-  const hasDrawTwoPenalty = currentPitcher ? !!g.drawTwoBuff[currentPitcher] : false;
-  const effectivePoints = Math.max(0, hasDrawTwoPenalty ? pitchPoints - 1 : pitchPoints);
+  const drawTwoPenalty = currentPitcher ? (g.drawTwoBuff[currentPitcher] ?? 0) : 0;
+  const effectivePoints = Math.max(0, pitchPoints - drawTwoPenalty);
 
   const pointsLabel = useMemo(() => {
-    const penalty = hasDrawTwoPenalty ? " (−1 draw penalty)" : "";
+    const penalty = drawTwoPenalty > 0 ? ` (−${drawTwoPenalty} draw penalty)` : "";
     if (slotCount >= 4) return `${effectivePoints}pts — triple down!${penalty}`;
     if (slotCount >= 3) return `${effectivePoints}pts — double down!${penalty}`;
     if (pitchValid) return `${effectivePoints}pt${effectivePoints !== 1 ? "s" : ""}${penalty}`;
     return "";
-  }, [slotCount, pitchValid, effectivePoints, hasDrawTwoPenalty]);
+  }, [slotCount, pitchValid, effectivePoints, drawTwoPenalty]);
 
   const isLastPitcher = g.currentPitcherIndex === g.pitchers.length - 1;
   const canSkip = !isLastPitcher || g.pitches.length > 0;
@@ -405,14 +405,14 @@ export function PitchDeckGame({ cardsData }: { cardsData: CardsData }) {
     const name = g.pitchers[g.currentPitcherIndex];
     const chain = slots.filter((s) => s.card).map((s) => s.card!);
     const text = buildSlotPitchText(slots);
-    const hasPenalty = !!g.drawTwoBuff[name];
+    const penaltyCount = g.drawTwoBuff[name] ?? 0;
     const pitch: Pitch = {
       player: name,
       cards: chain,
       text,
       tagline,
       cardCount: chain.length,
-      drawTwoPenalty: hasPenalty,
+      drawTwoPenalty: penaltyCount,
     };
     const remaining = g.hands[name].filter((_, i) => !usedHandIndices.has(i));
     let disc = { ...g.discards };
@@ -438,7 +438,7 @@ export function PitchDeckGame({ cardsData }: { cardsData: CardsData }) {
       screen: "pass" as Screen,
       passTarget: last ? prev.players[prev.judgeIndex] : prev.pitchers[ni],
       passRole: last ? ("judge" as const) : ("pitcher" as const),
-      drawTwoBuff: { ...prev.drawTwoBuff, [name]: false },
+      drawTwoBuff: { ...prev.drawTwoBuff, [name]: 0 },
     }));
     setSlots(emptySlots());
     setTagline("");
@@ -488,7 +488,7 @@ export function PitchDeckGame({ cardsData }: { cardsData: CardsData }) {
       hands: { ...prev.hands, [currentPitcher!]: r.hand },
       decks: r.decks,
       discards: r.discards,
-      drawTwoBuff: { ...prev.drawTwoBuff, [currentPitcher!]: true },
+      drawTwoBuff: { ...prev.drawTwoBuff, [currentPitcher!]: (prev.drawTwoBuff[currentPitcher!] ?? 0) + 1 },
     }));
     setSkipTradeOpen(false);
     setSkipTradePhase(null);
@@ -540,7 +540,7 @@ export function PitchDeckGame({ cardsData }: { cardsData: CardsData }) {
     if (judgeSelection < 0) return;
     const wp = g.pitches[judgeSelection];
     const basePts = pointsForSlots(wp.cardCount);
-    const pts = Math.max(0, wp.drawTwoPenalty ? basePts - 1 : basePts);
+    const pts = Math.max(0, basePts - wp.drawTwoPenalty);
     setG((prev) => ({
       ...prev,
       scores: { ...prev.scores, [wp.player]: (prev.scores[wp.player] ?? 0) + pts },
@@ -823,9 +823,9 @@ export function PitchDeckGame({ cardsData }: { cardsData: CardsData }) {
           <div className="flex-1 overflow-y-auto scrollbar-hide">
             <div className="max-w-lg mx-auto px-5 py-4 space-y-5">
               {/* Draw 2 penalty banner */}
-              {hasDrawTwoPenalty && (
+              {drawTwoPenalty > 0 && (
                 <div className="text-center text-[11px] font-mono text-[#c93939]/80 bg-[#c93939]/10 border border-[#c93939]/20 rounded-lg py-1.5 px-3">
-                  −1 point penalty active (Draw 2)
+                  −{drawTwoPenalty} point penalty active (Draw 2)
                 </div>
               )}
 
@@ -1019,7 +1019,7 @@ export function PitchDeckGame({ cardsData }: { cardsData: CardsData }) {
             <div className="max-w-lg mx-auto p-5 flex flex-col gap-4">
               {shuffledPitches.map((pitch, pi) => {
                 const basePts = pointsForSlots(pitch.cardCount);
-                const pts = Math.max(0, pitch.drawTwoPenalty ? basePts - 1 : basePts);
+                const pts = Math.max(0, basePts - pitch.drawTwoPenalty);
                 const selected = judgeSelection === pitch.originalIndex;
                 const tilt = ["-1.5deg", "0.5deg", "-0.8deg", "1.2deg", "-0.3deg"][pi % 5];
                 return (
@@ -1050,8 +1050,8 @@ export function PitchDeckGame({ cardsData }: { cardsData: CardsData }) {
                     )}
                     <p className="text-[10px] font-mono text-sage/40 mt-3">
                       {pitch.cardCount} cards &middot; {pts}pt{pts > 1 ? "s" : ""}
-                      {pitch.drawTwoPenalty && (
-                        <span className="text-[#c93939]"> (−1 draw penalty)</span>
+                      {pitch.drawTwoPenalty > 0 && (
+                        <span className="text-[#c93939]"> (−{pitch.drawTwoPenalty} draw penalty)</span>
                       )}
                     </p>
                     {selected && (

@@ -17,7 +17,7 @@ export interface Pitch {
   text: string;
   tagline: string;
   cardCount: number;
-  drawTwoPenalty?: boolean;
+  drawTwoPenalty: number;
 }
 
 export interface HallEntry {
@@ -65,5 +65,5 @@ export interface GameState {
   passRole: "pitcher" | "judge";
   revealPitch: Pitch | null;
   revealPoints: number;
-  drawTwoBuff: Record<string, boolean>;
+  drawTwoBuff: Record<string, number>;
 }
